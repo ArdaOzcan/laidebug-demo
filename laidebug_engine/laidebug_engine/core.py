@@ -1,5 +1,5 @@
 import bdb
-import argparse
+from .llm import LLMWrapper
 from copy import deepcopy
 
 
@@ -21,14 +21,14 @@ class FunctionExecutionInformation:
 
 
 class LaiDebugger(bdb.Bdb):
-    def __init__(self, filename, function_name):
+    def __init__(self, file_content, function_name):
         super().__init__()
-        self.filename = filename
+        self.file_content = file_content
         self.function_name = function_name
         self.execution_information = FunctionExecutionInformation(function_name, self.get_function_source())
 
     def execute(self):
-        self.run(f'exec(open("{self.filename}").read())')
+        self.run(f'exec("""{self.file_content}""")')
 
     def user_line(self, frame):
         # Only step through the specified function
@@ -40,39 +40,40 @@ class LaiDebugger(bdb.Bdb):
         super().user_line(frame)
 
     def get_source_line(self, frame):
-        with open(self.filename, "r") as file:
-            lines = file.readlines()
-            return lines[frame.f_lineno - 1]
+        lines = self.file_content.split("\n")
+        return lines[frame.f_lineno - 1]
 
     def get_function_source(self):
-        with open(self.filename, "r") as file:
-            lines = file.readlines()
-            function_source = []
-            inside_function = False
-            trailing_whitespace = 0
-            for i, line in enumerate(lines):
-                if line.lstrip().startswith(f"def {self.function_name}"):
-                    inside_function = True
-                elif line != "\n" and not line.startswith(" "):
-                    break
+        lines = self.file_content.split("\n")
+        function_source = []
+        inside_function = False
+        trailing_whitespace = 0
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith(f"def {self.function_name}"):
+                inside_function = True
+            elif line != "\n" and not line.startswith(" "):
+                break
 
-                if inside_function:
-                    if line.strip() == "":
-                        trailing_whitespace += 1
-                    else:
-                        trailing_whitespace = 0
-                    function_source.append(f"line {i+1}:{line}")
-
-            for i, line in enumerate(reversed(function_source)):
-                if line.strip() != "":
-                    break
+            if inside_function:
+                if line.strip() == "":
+                    trailing_whitespace += 1
                 else:
-                    function_source.pop(len(function_source) - i)
+                    trailing_whitespace = 0
+                function_source.append(f"line {i+1}:{line}")
 
-            return "".join(function_source[:-trailing_whitespace])
+        for i, line in enumerate(reversed(function_source)):
+            if line.strip() != "":
+                break
+            else:
+                function_source.pop(len(function_source) - i)
+
+        return "".join(function_source[:-trailing_whitespace])
 
 
 def convert_to_prompt(func_exec_info):
+    if not func_exec_info.line_executions:
+        return None
+
     messages = [
         f"Your task is to analyze function '{func_exec_info.function_name}' and report any unexpected behaviour."
     ]
@@ -90,3 +91,16 @@ def convert_to_prompt(func_exec_info):
     messages.append("The function has ended.")
 
     return "\n".join(messages)
+
+
+def debug_function(file_content, function_name, model_name, api_key):
+    debugger = LaiDebugger(file_content, function_name)
+    debugger.execute()
+    model = LLMWrapper(model_name, api_key)
+    prompt = convert_to_prompt(debugger.execution_information)
+    if prompt is None:
+        raise Exception(
+            f"Breakpoint was not hit at given function '{function_name}'. No prompt could be generated."
+        )
+
+    return model.ask(prompt)
