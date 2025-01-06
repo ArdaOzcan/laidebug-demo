@@ -5,6 +5,7 @@ certifi==2024.12.14
 charset-normalizer==3.4.1
 click==8.1.8
 Flask==3.1.0
+Flask-Cors==5.0.0
 google-ai-generativelanguage==0.6.10
 google-api-core==2.24.0
 google-api-python-client==2.157.0
@@ -18,7 +19,7 @@ httplib2==0.22.0
 idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.5
--e git+https://github.com/ArdaOzcan/laidebug-demo.git@5cbf0948482f0c4d90c8236542d320aa8a618d6d#egg=laidebug_engine&subdirectory=laidebug_engine
+-e git+https://github.com/ArdaOzcan/laidebug-demo.git@a26dad515bcb8a2d6bbc491078883ef64d2132d1#egg=laidebug_engine&subdirectory=laidebug_engine
 MarkupSafe==3.0.2
 proto-plus==1.25.0
 protobuf==5.29.2
