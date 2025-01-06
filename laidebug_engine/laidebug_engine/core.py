@@ -1,4 +1,5 @@
 import bdb
+import ast
 from .llm import LLMWrapper
 from copy import deepcopy
 
@@ -25,10 +26,11 @@ class LaiDebugger(bdb.Bdb):
         super().__init__()
         self.file_content = file_content
         self.function_name = function_name
-        self.execution_information = FunctionExecutionInformation(function_name, self.get_function_source())
+        self.execution_information = FunctionExecutionInformation(function_name, "empty")
 
     def execute(self):
         self.run(f'exec("""{self.file_content}""")')
+        self.execution_information.function_content = self.get_function_source()
 
     def user_line(self, frame):
         # Only step through the specified function
@@ -44,24 +46,13 @@ class LaiDebugger(bdb.Bdb):
         return lines[frame.f_lineno - 1]
 
     def get_function_source(self):
-        lines = self.file_content.split("\n")
-        function_source = []
-        inside_function = False
-        trailing_whitespace = 0
-        for i, line in enumerate(lines):
-            if line.lstrip().startswith(f"def {self.function_name}"):
-                inside_function = True
-            elif line != "\n" and not line.startswith(" "):
-                break
+        tree = ast.parse(self.file_content)
 
-            if inside_function:
-                if line.strip() == "":
-                    trailing_whitespace += 1
-                else:
-                    trailing_whitespace = 0
-                function_source.append(f"line {i+1}:{line}")
-
-        return "".join(function_source[:-trailing_whitespace])
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == self.function_name:
+                start_line = node.lineno - 1
+                end_line = max(getattr(node, "end_lineno", start_line + 1), start_line + 1)
+                return "\n".join(self.file_content.splitlines()[start_line:end_line])
 
 
 def convert_to_prompt(func_exec_info):
@@ -72,10 +63,6 @@ def convert_to_prompt(func_exec_info):
         f"Your task is to analyze function '{func_exec_info.function_name}' and report any unexpected behaviour."
     ]
 
-    messages.append(
-        f"The full function consists of the given lines of code:\n{func_exec_info.function_content}"
-    )
-
     for line in func_exec_info.line_executions:
         messages.append(f"-> Local variables currently are:")
         messages.append("\n".join(f"'{var}': {val}" for var, val in line.local_variables.items()))
@@ -83,6 +70,9 @@ def convert_to_prompt(func_exec_info):
         messages.append(f"-> Line content is:\n{line.line_content.rstrip()}")
 
     messages.append("The function has ended.")
+    messages.insert(
+        1, f"The full function consists of the given lines of code:\n{func_exec_info.function_content}"
+    )
 
     return "\n".join(messages)
 
@@ -97,4 +87,5 @@ def debug_function(file_content, function_name, model_name, api_key):
             f"Breakpoint was not hit at given function '{function_name}'. No prompt could be generated."
         )
 
+    print(prompt)
     return model.ask(prompt)

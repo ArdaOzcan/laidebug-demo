@@ -1,5 +1,5 @@
 import argparse
-from .core import LaiDebugger, convert_to_prompt
+from .core import debug_function
 from .llm import LLMWrapper
 
 if __name__ == "__main__":
@@ -13,9 +13,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    debugger = LaiDebugger(args.file_path, args.function_name)
-    debugger.execute()
-    model = LLMWrapper(args.model_name, args.api_key)
-    prompt = convert_to_prompt(debugger.execution_information)
-    response = model.ask(prompt)
-    print(response)
+    with open(args.file_path, "r") as file:
+        response = debug_function(file.read(), args.function_name, args.model_name, args.api_key)
+        print(response)

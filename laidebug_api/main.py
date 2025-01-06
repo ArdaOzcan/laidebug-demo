@@ -6,6 +6,7 @@ from laidebug_engine.core import debug_function
 SUPPORTED_METHODS = {
     "debugFunction": debug_function,
 }
+
 app = Flask(__name__)
 CORS(app)
 

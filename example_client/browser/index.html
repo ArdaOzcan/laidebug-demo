@@ -4,31 +4,111 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Debug Function API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .form-container {
+      margin-bottom: 20px;
+    }
+
+    #response-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    #response-container > div {
+      flex: 1 1 calc(33.33% - 20px); /* Flex items take 1/3 width and adjust for gaps */
+      border: 1px solid #ccc;
+      padding: 10px;
+      overflow: auto;
+      background-color: #f9f9f9;
+      max-height: 400px;
+    }
+
+    textarea, input, select, button {
+      width: 100%;
+      max-width: 400px;
+      margin: 5px 0;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .flex-column {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  </style>
 </head>
 <body>
   <h1>Debug Function API</h1>
-  <form id="debugForm">
-    <label for="fileContent">Python File Content:</label><br>
-    <textarea id="fileContent" rows="10" cols="50" placeholder="Paste your Python code here" required onkeydown="handleTab(event)"></textarea><br><br>
+  <div class="container">
+    <form id="debugForm" class="form-container">
+      <div class="flex-column">
+        <label for="fileContent">Python File Content:</label>
+        <textarea id="fileContent" rows="10" cols="50" placeholder="Paste your Python code here" required onkeydown="handleTab(event)"></textarea>
+      </div>
 
-    <label for="functionName">Function Name:</label>
-    <input type="text" id="functionName" required><br><br>
+      <div class="flex-column">
+        <label for="functionName">Function Name:</label>
+        <input type="text" id="functionName" required>
+      </div>
 
-    <label for="model">Model:</label>
-    <select id="model" required>
-      <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-      <option value="gemini-2.0-pro">gemini-2.0-pro</option>
-    </select><br><br>
+      <div class="flex-column">
+        <label for="model">Model:</label>
+        <select id="model" required>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+        </select>
+      </div>
 
-    <label for="apiKey">API Key:</label>
-    <input type="text" id="apiKey" required><br><br>
+      <div class="flex-column">
+        <label for="apiKey">API Key:</label>
+        <input type="text" id="apiKey" required>
+      </div>
 
-    <button type="submit">Submit</button>
-  </form>
+      <button type="submit">Submit</button>
+    </form>
 
-  <div id="response">
-    <h2>Response</h2>
-    <pre id="responseOutput"></pre>
+    <div id="response-container">
+      <div>
+        <h2>JSON Request</h2>
+        <pre id="jsonRequest"></pre>
+      </div>
+      <div>
+        <h2>JSON Response</h2>
+        <pre id="jsonResponse"></pre>
+      </div>
+      <div>
+        <h2>Formatted Response</h2>
+        <pre id="formattedResponse"></pre>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -58,23 +138,34 @@
         return;
       }
 
+      const payload = {
+        method: "debugFunction",
+        params: [fileContent, functionName, model, apiKey],
+        id: 1,
+      };
+
+      // Update JSON Request
+      document.getElementById('jsonRequest').textContent = JSON.stringify(payload, null, 2);
+
       fetch("http://localhost:5000", {
         method: "POST",
-        body: JSON.stringify({
-          method: "debugFunction",
-          params: [fileContent, functionName, model, apiKey],
-          id: 1,
-        }),
+        body: JSON.stringify(payload),
         headers: {
           "Content-type": "application/json; charset=UTF-8"
         }
       })
       .then((response) => response.json())
       .then((json) => {
-        document.getElementById('responseOutput').textContent = JSON.stringify(json, null, 2);
+        // Update JSON Response
+        document.getElementById('jsonResponse').textContent = JSON.stringify(json, null, 2);
+
+        // Update Formatted Response
+        const formattedResponse = json.result || "No result available.";
+        document.getElementById('formattedResponse').textContent = formattedResponse;
       })
       .catch((error) => {
-        document.getElementById('responseOutput').textContent = `Error: ${error.message}`;
+        document.getElementById('jsonResponse').textContent = `Error: ${error.message}`;
+        document.getElementById('formattedResponse').textContent = `Error: ${error.message}`;
       });
     });
   </script>
