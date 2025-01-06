@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import inspect
 from laidebug_engine.core import debug_function
 
@@ -6,6 +7,7 @@ SUPPORTED_METHODS = {
     "debugFunction": debug_function,
 }
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route("/", methods=["POST"])

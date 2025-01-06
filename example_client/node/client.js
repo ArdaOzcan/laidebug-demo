@@ -8,7 +8,7 @@ fetch("http://localhost:5000", {
   method: "POST",
   body: JSON.stringify({
     method: "debugFunction",
-    params: [fileContent, "add", "gemini-1.5-flash", API_KEY],
+    params: [fileContent, "power", "gemini-1.5-flash", API_KEY],
     id: 1,
   }),
   headers: {
