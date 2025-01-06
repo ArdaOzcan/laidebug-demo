@@ -61,12 +61,6 @@ class LaiDebugger(bdb.Bdb):
                     trailing_whitespace = 0
                 function_source.append(f"line {i+1}:{line}")
 
-        for i, line in enumerate(reversed(function_source)):
-            if line.strip() != "":
-                break
-            else:
-                function_source.pop(len(function_source) - i)
-
         return "".join(function_source[:-trailing_whitespace])
 
 
