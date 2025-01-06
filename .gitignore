@@ -9,4 +9,5 @@ __pycache__
 pyvenv.cfg
 .venv
 .env
+*.egg-info
 pip-selfcheck.json
