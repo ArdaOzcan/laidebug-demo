@@ -18,7 +18,7 @@ httplib2==0.22.0
 idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.5
--e git+https://github.com/ArdaOzcan/laidebug-demo.git@56c47a0ff929586804c148d5331a7d1dbbb79e1a#egg=laidebug_engine&subdirectory=laidebug_engine
+-e git+https://github.com/ArdaOzcan/laidebug-demo.git@5cbf0948482f0c4d90c8236542d320aa8a618d6d#egg=laidebug_engine&subdirectory=laidebug_engine
 MarkupSafe==3.0.2
 proto-plus==1.25.0
 protobuf==5.29.2
