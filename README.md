@@ -3,9 +3,8 @@ Lai.debug (pronounced ladybug), incorporates debuggers with LLMs by utilizing pr
 
 This demo currently only supports python files as source files and `gemini-1.5-flash` as a model.
 ## Dependencies
-These programs are required to run this project:
-* `node 22.11.0`
 * `python 3.12.7`
+* `node 22.11.0` (optional for client example)
 
 ## Installation
 Run `git clone https://github.com/ArdaOzcan/laidebug-demo/`
@@ -20,109 +19,163 @@ Run the `setup_windows.bat` file.
 
 ### For MacOS/Linux:
 Run `chmod +x setup.sh` to make `setup.sh` executable.
-Run the `setup.sh` file in your terminal.
+Then run the script using `./setup.sh`.
 
 You are now ready to use Lai.debug!
 
 ## Usage
 ### API Key
 You will have to get a free API key for `gemini-1.5-flash` from [here](https://aistudio.google.com/apikey) in order to use Lai.debug.
-After getting the key, insert it in `laidebug-demo/example_client/client.js` if you would like to use the example.
 
 There are two ways to use this program. You can either use laidebug_engine as a CLI tool or start a HTTP server using the laidebug_api and create requests with a client of your choice.
 1. **CLI**
    
    In order to use Lai.debug in your terminal, navigate to the engine directory `laidebug-demo/laidebug_engine` and activate the virtual environment with `source bin/activate` if you are on MacOS/Linux and `.\Scripts\active` if you are on Windows.
-
    After that, you can simply run `python -m laidebug_engine --help`. The command line arguments are like this: `python -m laidebug_engine FILE_PATH FUNCTION_NAME MODEL_NAME API_KEY`
-2. **JSON-RPC**
 
-  You can also run the laidebug_api HTTP server, which will be calling the function from the laidebug_engine using Remote Procedure Calling (RPC) over JSON.
+3. **JSON-RPC**
+   
+   You can also run the laidebug_api HTTP server, which will be calling the function from the laidebug_engine using Remote Procedure Calling (RPC) over JSON.
+   You can start the server by navigating to the api folder `laidebug-demo/laidebug_api` and running the command `python -m flask --app main run`.
+   This will start a server running on `http://localhost:5000`. You can now send requests in JSON format. We can use the example clients to test the server.
   
-  You can start the server by navigating to the api folder `laidebug-demo/laidebug_api` and running the command `python -m flask --app main run`.
-  This will start a server running on `http://localhost:5000`. You can now send requests in JSON format. We can use the example client to test the server.
-  Navigate to `laidebug-demo/example_client` and (you should have a valid API_KEY at this point) run `node client.js`.
-  The example client sends this request to the server:
-  ```json
-{
-  "method": "debugFunction",
-  "params": [
-    "def add(x, y):\n    sum = 0\n    for n in [x, y]:\n        sum += n\n    return sum\nif __name__ == \"__main__\":\n    add(35, 40)",
-    "add",
-    "gemini-1.5-flash",
-    "API_KEY"
-  ],
-  "id": 1
-}
-  ```
-  The servers response is:
-  ```json
-{
-  "id": 1,
-  "result": "The function `add` correctly sums the values of the variables `x` and `y`.  There is no unexpected behavior reported in the provided trace.  The function initializes `sum` to 0, iterates through the list `[x, y]`, adding each element to `sum`, and finally returns the correct sum (75).\n"
-}
-  ```
+   To test it, you can easily use the browser client located in `laidebug-demo/example_client/browser`. Simply open the `index.html` file in your browser and fill the necessary fields to post a request.
+  
+   Optionally, you can use the node.js client to test the server. Insert your API key in `laidebug-demo/example_client/client.js` if you would like to use the example.
+   Navigate to `laidebug-demo/example_client/node` and run `node client.js`.
+   The example client sends request to the server that looks like this:
+   ```json
+   {
+     "method": "debugFunction",
+     "params": [
+       "def power(n, a):\n	result = n\n	for i in range(a):\n		result *= i\n	return result\n\npower(3, 5)",
+       "power",
+       "gemini-1.5-flash",
+       "API_KEY"
+     ],
+     "id": 1
+   }
+   ```
+   The servers response is:
+   ```json
+   {
+     "id": 1,
+     "result": "The unexpected behavior is that the function `power` does not actually compute a power.  It initializes `result` to `n`, but then the loop `for i in range(a): result *= i` iteratively multiplies `result` by `i`, where `i` ranges from 0 to `a-1`.\n\nBecause `i` starts at 0, the first iteration results in `result *= 0`, which sets `result` to 0.  All subsequent multiplications will also result in 0. Therefore, the function always returns 0 regardless of the input values of `n` and `a`.\n\nTo calculate a power (a<sup>n</sup>), the loop should be structured differently.  It should repeatedly multiply `result` by `a`, `n` times.  For example:\n\n```python\ndef power(a, n):\n  result = 1  # Initialize to 1, not n\n  for _ in range(n):\n    result *= a\n  return result\n```\nor even more concisely using the `**` operator:\n\n```python\ndef power(a, n):\n  return a**n\n```\nThe provided code has a fundamental flaw in its logic for calculating the power.\n"
+   }
+   ```
 
 You can change the content of the `example.py` file and the function name parameter, the second parameter, in `client.js` to play with it.
 
 ## How does it Work?
 The Lai.debug Engine runs the given python file and records local variables of the given function for each executed line. An example prompt generated by the engine looks like this:
 ```
-Your task is to analyze function 'add' and report any unexpected behaviour.
+Your task is to analyze function 'power' and report any unexpected behaviour.
 The full function consists of the given lines of code:
-
+def power(n, a):
+    result = n
+    for i in range(a):
+        result *= i
+    return result
 -> Local variables currently are:
-'x': 35
-'y': 40
+'n': 3
+'a': 5
+-> Line 2 will be executed.
+-> Line content is:
+    result = n
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 3
 -> Line 3 will be executed.
 -> Line content is:
-    sum = 0
+    for i in range(a):
 -> Local variables currently are:
-'x': 35
-'y': 40
-'sum': 0
+'n': 3
+'a': 5
+'result': 3
+'i': 0
 -> Line 4 will be executed.
 -> Line content is:
-    for n in [x, y]:
+        result *= i
 -> Local variables currently are:
-'x': 35
-'y': 40
-'sum': 0
-'n': 35
+'n': 3
+'a': 5
+'result': 0
+'i': 0
+-> Line 3 will be executed.
+-> Line content is:
+    for i in range(a):
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 1
+-> Line 4 will be executed.
+-> Line content is:
+        result *= i
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 1
+-> Line 3 will be executed.
+-> Line content is:
+    for i in range(a):
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 2
+-> Line 4 will be executed.
+-> Line content is:
+        result *= i
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 2
+-> Line 3 will be executed.
+-> Line content is:
+    for i in range(a):
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 3
+-> Line 4 will be executed.
+-> Line content is:
+        result *= i
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 3
+-> Line 3 will be executed.
+-> Line content is:
+    for i in range(a):
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 4
+-> Line 4 will be executed.
+-> Line content is:
+        result *= i
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 4
+-> Line 3 will be executed.
+-> Line content is:
+    for i in range(a):
+-> Local variables currently are:
+'n': 3
+'a': 5
+'result': 0
+'i': 4
 -> Line 5 will be executed.
 -> Line content is:
-        sum += n
--> Local variables currently are:
-'x': 35
-'y': 40
-'sum': 35
-'n': 35
--> Line 4 will be executed.
--> Line content is:
-    for n in [x, y]:
--> Local variables currently are:
-'x': 35
-'y': 40
-'sum': 35
-'n': 40
--> Line 5 will be executed.
--> Line content is:
-        sum += n
--> Local variables currently are:
-'x': 35
-'y': 40
-'sum': 75
-'n': 40
--> Line 4 will be executed.
--> Line content is:
-    for n in [x, y]:
--> Local variables currently are:
-'x': 35
-'y': 40
-'sum': 75
-'n': 40
--> Line 7 will be executed.
--> Line content is:
-    return sum
+    return result
 The function has ended.
 ```
