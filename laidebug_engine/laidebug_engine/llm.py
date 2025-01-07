@@ -1,6 +1,5 @@
 import google.generativeai as genai
 
-
 SUPPORTED_MODELS = {"gemini-1.5-flash"}
 
 

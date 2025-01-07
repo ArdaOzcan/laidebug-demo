@@ -12,7 +12,7 @@ CORS(app)
 
 
 @app.route("/", methods=["POST"])
-def get():
+def json_rpc():
     content = request.get_json(silent=True)
     if content == None:
         return jsonify({"error": {"code": -32700, "message": "Invalid JSON."}, "id": None})

@@ -25,29 +25,22 @@ class LaiDebugger(bdb.Bdb):
     def __init__(self, file_content, function_name):
         super().__init__()
         self.file_content = file_content
+        self.source_lines = self.file_content.splitlines()
         self.function_name = function_name
-        self.execution_information = FunctionExecutionInformation(function_name, "empty")
+        self.execution_information = FunctionExecutionInformation(function_name, None)
 
     def execute(self):
-        self.run(f'exec("""{self.file_content}""")')
+        self.run(f"exec('''{self.file_content}''')")
         self.execution_information.function_content = self.get_function_source()
 
     def user_line(self, frame):
-        # Only step through the specified function
         if frame.f_code.co_name == self.function_name:
-            line_content = self.get_source_line(frame)
+            line_content = self.source_lines[frame.f_lineno - 1]
             line_info = LineExecutionInformation(frame.f_lineno, line_content, deepcopy(frame.f_locals))
             self.execution_information.add_line_execution(line_info)
 
-        super().user_line(frame)
-
-    def get_source_line(self, frame):
-        lines = self.file_content.split("\n")
-        return lines[frame.f_lineno - 1]
-
     def get_function_source(self):
         tree = ast.parse(self.file_content)
-
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == self.function_name:
                 start_line = node.lineno - 1
@@ -59,9 +52,10 @@ def convert_to_prompt(func_exec_info):
     if not func_exec_info.line_executions:
         return None
 
-    messages = [
+    messages = []
+    messages.append(
         f"Your task is to analyze function '{func_exec_info.function_name}' and report any unexpected behaviour."
-    ]
+    )
 
     for line in func_exec_info.line_executions:
         messages.append(f"-> Local variables currently are:")
