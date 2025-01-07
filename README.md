@@ -30,14 +30,13 @@ You will have to get a free API key for `gemini-1.5-flash` from [here](https://a
 There are two ways to use this program. You can either use laidebug_engine as a CLI tool or start a HTTP server using the laidebug_api and create requests with a client of your choice.
 1. **CLI**
    
-   In order to use Lai.debug in your terminal, navigate to the engine directory `laidebug-demo/laidebug_engine` and activate the virtual environment with `source bin/activate` if you are on MacOS/Linux and `.\Scripts\active` if you are on Windows.
+   In order to use Lai.debug in your terminal, navigate to the engine directory `laidebug-demo/laidebug_engine` and activate the virtual environment with `source bin/activate` if you are on MacOS/Linux and `.\Scripts\activate` if you are on Windows.
    After that, you can simply run `python -m laidebug_engine --help`. The command line arguments are like this: `python -m laidebug_engine FILE_PATH FUNCTION_NAME MODEL_NAME API_KEY`
 
 3. **JSON-RPC**
    
    You can also run the laidebug_api HTTP server, which will be calling the function from the laidebug_engine using Remote Procedure Calling (RPC) over JSON.
-   You can start the server by navigating to the api folder `laidebug-demo/laidebug_api` and running the command `python -m flask --app main run`.
-   This will start a server running on `http://localhost:5000`. You can now send requests in JSON format. We can use the example clients to test the server.
+   You can start the server by navigating to the api folder `laidebug-demo/laidebug_api` and activating the virtual environment with `source bin/activate` if you are on MacOS/Linux and `.\Scripts\activate` if you are on Windows. Then, running the command `python -m flask --app main run` will start a server running on `http://localhost:5000`. You can now send requests in JSON format. We can use the example clients to test the server.
   
    To test it, you can easily use the browser client located in `laidebug-demo/example_client/browser`. Simply open the `index.html` file in your browser and fill the necessary fields to post a request.
   
